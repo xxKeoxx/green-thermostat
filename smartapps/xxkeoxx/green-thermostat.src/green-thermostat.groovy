@@ -40,12 +40,15 @@ def updated() {
 }
 
 def initialize() {
-	turnOff()
 	state.changed = false
     state.thermostatMode = thermostat.currentValue("thermostatMode")
     subscribe(thermostat, 'thermostatMode', "thermostatChange")
 	subscribe(sensors, 'contact', "sensorChange")
-    //log.debug "State Info: $state"
+    def result = contactOpenList()
+    if (result){
+    	turnOff()
+    }
+    log.debug "initialize State Info: $state"
 }
 
 def contactOpenList() {
@@ -55,43 +58,59 @@ def contactOpenList() {
 }
 
 def thermostatChange(evt){
+    log.debug "$thermostat $evt.value happened"
 	if (thermostat.currentValue("thermostatMode") != "off"){
-		log.debug "termostat is " + thermostat.currentValue("thermostatMode")
+    	state.thermostatMode = thermostat.currentValue("thermostatMode")
+		log.debug "thermostat mode is " + thermostat.currentValue("thermostatMode")
         turnOff()
     }
 }
 
 def sensorChange(evt) {
-	//log.debug "Desc: $evt.value , $state"
+	log.debug "Desc: sensor event happened $evt.value , $state"
     def result = contactOpenList()
-    log.debug "Desc: $evt.value , $result"
-    if(evt.value == 'open' && (contactOpenList.size() < "1")) {    	
-        log.debug "getting ready to turn off"
+    log.debug "Desc: $evt.value , $result , $result.size"
+    if(evt.value == 'open' && (result.size() <= 1)) {
+        state.thermostatMode = thermostat.currentValue("thermostatMode")
+        log.debug "Thermostat mode is ${state.thermostatMode}"
+        log.debug "Scheduling to turn off ${thermostat}"
     	runIn(delay * 60, 'turnOff')
 	} else if(evt.value == 'closed' && !result) {
-        log.debug "getting ready to restore"
+        log.debug "getting ready to run restore ${thermostat}"
         unschedule()
     	restore()
+    } else if (evt.value == 'closed' && result) {
+    	def sensorList = result.join(", ")
+        sendPush("left the thermostat off because these contacts are open: ${sensorList}")
     }
 }
 
 
 def turnOff() {
+    log.debug "turnOff method happened $state"
     def result = contactOpenList()
-    if (result){
+    if (result && (state.changed == false)){
     	def sensorList = result.join(", ")
-    	log.debug "Turning off thermostat.  The following contacts are open: $sensorList"
-    	state.thermostatMode = thermostat.currentValue("thermostatMode")
+    	log.debug "Turning off thermostat.  The following contacts are open: $sensorList"   	
     	thermostat.off()
+        //thermostat.setThermostatMode("off")
     	state.changed = true
+        //state.thermostatMode = thermostat.currentValue("thermostatMode")
     	log.debug "State: $state"
-		sendPush("I changed ${thermostat} to ${state.thermostatMode} because The following contacts are open: ${sensorList}")
+		sendPush("I changed ${thermostat} to "+ thermostat.currentValue("thermostatMode") +" because The following contacts are open: ${sensorList}")
 	}
 }
 
 def restore() {
-    log.debug "Setting thermostat to $state.thermostatMode"
-    thermostat.setThermostatMode(state.thermostatMode)
-    state.changed = false
-    sendPush("I changed ${thermostat} back to ${state.thermostatMode} because everything is closed.")
+    log.debug "retore method happened"
+    log.debug "Thermostat state is currently: " + thermostat.currentValue("thermostatMode")
+	if (thermostat.currentValue("thermostatMode") != state.thermostatMode){
+    	log.debug "Setting thermostat to $state.thermostatMode"
+    	thermostat.setThermostatMode(state.thermostatMode)
+    	state.changed = false
+    	sendPush("I changed ${thermostat} back to ${state.thermostatMode} because everything is closed.")
+    } else {
+    	log.debug "Restore not ran because there were no contact sensors open and ${thermostat} was already set to ${state.thermostatMode}"
+        log.debug "No push notification will be sent"
+    }
 }
