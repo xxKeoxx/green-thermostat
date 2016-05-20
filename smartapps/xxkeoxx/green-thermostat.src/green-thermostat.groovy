@@ -89,7 +89,9 @@ def sensorChange(evt) {
 def turnOff() {
     log.debug "turnOff method happened $state"
     def result = contactOpenList()
-    if (result && (state.changed == false)){
+    log.debug "result is: $result"
+    //if (result && (state.changed == false)){
+    if (result && (thermostat.currentValue("thermostatMode") != "off")) {
     	def sensorList = result.join(", ")
     	log.debug "Turning off thermostat.  The following contacts are open: $sensorList"   	
     	thermostat.off()
@@ -98,11 +100,13 @@ def turnOff() {
         //state.thermostatMode = thermostat.currentValue("thermostatMode")
     	log.debug "State: $state"
 		sendPush("I changed ${thermostat} to "+ thermostat.currentValue("thermostatMode") +" because The following contacts are open: ${sensorList}")
-	}
+	} else {
+        log.debug "Thermostat is in state: " + thermostat.currentValue("thermostatMode")
+    }
 }
 
 def restore() {
-    log.debug "retore method happened"
+    log.debug "restore method happened"
     log.debug "Thermostat state is currently: " + thermostat.currentValue("thermostatMode")
 	if (thermostat.currentValue("thermostatMode") != state.thermostatMode){
     	log.debug "Setting thermostat to $state.thermostatMode"
