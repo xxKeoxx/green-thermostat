@@ -11,8 +11,8 @@ definition(
     author: "jprosiak@sbcglobal.net",
     description: "Automatically turn off thermostat if a contact sensor is open. Turn it back on when everything is closed up.",
     category: "Green Living",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience%402x.png",
+    iconUrl: "http://cdn.device-icons.smartthings.com/Home/home1-icn.png",
+    iconX2Url: "http://cdn.device-icons.smartthings.com/Home/home1-icn%402x.png",
     oauth: true
 )
 
@@ -99,7 +99,7 @@ def turnOff() {
     	state.changed = true
         //state.thermostatMode = thermostat.currentValue("thermostatMode")
     	log.debug "State: $state"
-		sendPush("I changed ${thermostat} to "+ thermostat.currentValue("thermostatMode") +" because The following contacts are open: ${sensorList}")
+		sendPush("I changed ${thermostat} to off because The following contacts are open: ${sensorList}")
 	} else {
         log.debug "Thermostat is in state: " + thermostat.currentValue("thermostatMode")
     }
